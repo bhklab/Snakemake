@@ -1,0 +1,43 @@
+configfile: "config.yaml"
+
+import pandas as pd
+
+samples = pd.read_table(
+    config["sample_file"]
+).set_index(
+    "sample", drop=False
+)
+
+output_dir = os.environ.get("output_dir")
+transcriptome_index = os.environ.get("transcriptome")
+
+def get_r1(wildcards):
+    return samples.read1[wildcards.sample]
+
+def get_r2(wildcards):
+    return samples.read2[wildcards.sample]
+
+
+rule all:
+    input: expand("{output_dir}/{sample}/abundance.tsv", sample = samples["sample"], output_dir=output_dir)
+    params: 
+        runtime="24:00:00"
+    threads: 1
+    resources: mem_mb=3000
+
+rule mapKallisto:
+    input:
+        r1 =  get_r1,
+        r2 =  get_r2,
+        transcriptome = transcriptome_index
+    params:
+        runtime="5:00:00",
+        base="{output_dir}/{sample}"
+    output: "{output_dir}/{sample}/abundance.tsv"
+    threads: 2
+    resources: mem_mb=8000
+    shell:
+     """
+     module load kallisto/0.46.1
+     kallisto quant -i {input.transcriptome} -o {params.base} -t 2 {input.r1} {input.r2}
+     """

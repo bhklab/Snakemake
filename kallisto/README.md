@@ -1,6 +1,6 @@
 # Snakemake RNA-seq Pipeline
 
-Snakemake workflow for RNA-seq processing using Kallisto.
+Snakemake workflow for Kallisto.
 <br/>
 <br/>
 *Snakefile* contains neccessary workflow components, shell commands, and H4H modules.

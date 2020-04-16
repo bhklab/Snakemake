@@ -1,4 +1,4 @@
-# Snakemake RNA-seq Pipeline
+# Snakemake Kallisto Pipeline
 
 Snakemake workflow for Kallisto.
 <br/>

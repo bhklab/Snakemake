@@ -18,6 +18,9 @@ Please follow the directions below to execute this pipeline:
 **2.** Within *snake_submit.sh*, ensure you specify correct path to 1) output directory; 2) transcriptome index (which can be found in /cluster/projects/bhklab/Data/RNAseqIndices/kallisto); 3) *Snakefile*
 <br/>
 <br/>
+*NOTE*: If you are using a mixed transcriptome (e.g. human/mouse), please upgrade memory in Snakefile to 16GB.
+<br/>
+<br/>
 **3.** Specify the number of samples you are processing using the -j parameter in snake_submit.sh (e.g. to parallelize 77 samples, -j 77)
 <br/>
 <br/>

@@ -1,0 +1,44 @@
+configfile: "config.yaml"
+
+import pandas as pd
+import os
+
+samples = pd.read_table(
+    config["sample_file"]
+).set_index(
+    "sample", drop=False
+)
+
+
+output_dir = os.environ.get("output_dir")
+
+
+rule all:
+    input: expand("{output_dir}/MuTect2Merge/{sample}/{sample}_merged_mut2.vcf", sample = samples["sample"] ,output_dir=output_dir)
+    params: 
+        runtime="120:00:00"
+    threads: 1
+    resources: mem_mb=6000
+    shell:
+     """
+     module load igenome-human/hg19
+     """
+
+rule MuTect2Merge:
+    input: directory("{output_dir}/MuTect2/{sample}"),
+    params:  
+        runtime="1:00:00",
+        script="/cluster/home/amammoli/concatvcfs",
+        out="{output_dir}/MuTect2Merge/{sample}",
+        samp="{sample}"
+    output: "{output_dir}/MuTect2Merge/{sample}/{sample}_merged_mut2.vcf"
+    threads: 2 
+    resources: mem_mb=8000
+    shell:
+     """
+     ff=$(find {input} -type f -name '*.mut2.vcf')
+     echo 'sh {params.script}' \
+     $ff$' > {output}' > {params.out}/'merge_{params.samp}_VCFs.sh'
+     sh {params.out}/merge_{params.samp}_VCFs.sh
+     
+     """

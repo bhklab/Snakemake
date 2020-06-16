@@ -1,0 +1,87 @@
+configfile: "config.yaml"
+
+import pandas as pd
+import os
+
+samples = pd.read_table(
+    config["sample_file"]
+).set_index(
+    "sample", drop=False
+)
+
+snv_vcfs = pd.read_table(
+    config["snv_vcf"]
+,dtype={'snv': object}).set_index(
+    "snv", drop=False
+)
+
+output_dir = os.environ.get("output_dir")
+
+def get_r1(wildcards):
+    return samples.read1[wildcards.sample]
+
+def get_r2(wildcards):
+    return samples.read2[wildcards.sample]
+
+def get_snvs(wildcards):
+    inter = wildcards.snv
+    snv = str(inter) + "_hg38" + ".vcf"
+    return snv
+
+rule all:
+    input: expand("{output_dir}/MAF_hg38/snv/{sample}/{snv}.maf", sample = samples["sample"], output_dir=output_dir, snv=snv_vcfs["snv"]),
+    params: 
+        runtime="120:00:00",
+        partition="all"
+    threads: 1
+    resources: mem_mb=6000
+    shell:
+     """
+     module load samtools 
+     module load vep/98 
+     module load igenome-human/hg38
+     """ 
+
+rule vcftoMAFsnv:
+    input:
+        ref = '/cluster/tools/data/genomes/human/hg38/iGenomes/Sequence/WholeGenomeFasta/genome.fa',
+        vcf_inter = "{output_dir}/vcfIntersect/{sample}_intersect_snv"
+    params:
+        samp="{sample}",
+        runtime="35:00:00",
+        snv = get_snvs,
+        partition="himem"
+    output: "{output_dir}/MAF_hg38/snv/{sample}/{snv}.maf",
+    threads: 4
+    resources: mem_mb=60000
+    run: 
+        if wildcards.snv != '0002':
+            shell("""module load samtools vep/98
+		perl /cluster/home/amammoli/vcf2maf.pl \
+                  --input-vcf {input.vcf_inter}/{params.snv} \
+                  --output-maf {output} \
+                  --vep-forks 4 \
+                  --buffer-size 1000 \
+                  --ref-fasta={input.ref} \
+                  --filter-vcf=0 \
+                  --tumor-id={params.samp} \
+                  --ncbi-build GRCh38 \
+                  --vep-path=/cluster/tools/software/centos7/vep/98 \
+                  --vep-data=/cluster/tools/data/commondata/ensembl/vep/98""")
+        else:
+            shell("""module load samtools vep/98
+	        perl /cluster/home/amammoli/vcf2maf.pl \
+                  --input-vcf {input.vcf_inter}/{params.snv} \
+                  --output-maf {output} \
+                  --vep-forks 4 \
+                  --buffer-size 1000 \
+                  --ref-fasta={input.ref} \
+                  --filter-vcf=0 \
+                  --normal-id unmatched \
+                  --vcf-tumor-id TUMOR \
+                  --vcf-normal-id NORMAL \
+                  --tumor-id={params.samp} \
+                  --ncbi-build GRCh38 \
+                  --vep-path=/cluster/tools/software/centos7/vep/98 \
+                  --vep-data=/cluster/tools/data/commondata/ensembl/vep/98""")
+

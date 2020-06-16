@@ -1,0 +1,2 @@
+sample_file: exome_samples.tsv
+indel_vcf: indels.tsv

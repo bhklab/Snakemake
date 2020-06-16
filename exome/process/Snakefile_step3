@@ -27,13 +27,7 @@ def get_r2(wildcards):
 
 
 rule all:
-    input: expand("{output_dir}/MAF/snv/{sample}/0000_hg38.maf", sample = samples["sample"], output_dir=output_dir),
-           expand("{output_dir}/MAF/snv/{sample}/0001_hg38.maf", sample = samples["sample"], output_dir=output_dir),
-           expand("{output_dir}/MAF/snv/{sample}/0002_hg38.maf", sample = samples["sample"], output_dir=output_dir),
-           expand("{output_dir}/MAF/snv/{sample}/0003_hg38.maf", sample = samples["sample"], output_dir=output_dir),
-           expand("{output_dir}/MAF/indel/{sample}/0000_hg38.maf", sample = samples["sample"], output_dir=output_dir),
-           expand("{output_dir}/MAF/indel/{sample}/0001_hg38.maf", sample = samples["sample"], output_dir=output_dir),
-           expand("{output_dir}/MAF/indel/{sample}/0002_hg38.maf", sample = samples["sample"], output_dir=output_dir)
+    input: directory(expand("{output_dir}/vcfIntersect/{sample}_intersect_snv", sample = samples["sample"], output_dir=output_dir)),
     params: 
         runtime="120:00:00",
         partition="all"
@@ -308,6 +302,7 @@ rule vcfIntersectSNV:
         strelka_vcf="{output_dir}/Strelka/{sample}/{sample}.myAnalysis",
         ref = '/cluster/tools/data/genomes/human/hg19/iGenomes/Sequence/WholeGenomeFasta/genome.fa',
         sequenza="{output_dir}/Sequenza/{sample}",
+        validate = "{output_dir}/vcfIntersect/{sample}_intersect_indel",
         
     params:
         temp_file="{output_dir}/vcfIntersectTemp/{sample}",
@@ -330,6 +325,7 @@ rule vcfIntersectSNV:
      mkdir -p {params.temp_file}
      mkdir -p {params.outdir}
      ls -la {input.sequenza}
+     ls -la {input.validate}
      
      vcf-sort -c  {input.mut1_vcf} > {params.temp_file}_mut1_sorted.vcf
      vcf-sort -c  {input.var_vcf} > {params.temp_file}_var_sorted.vcf

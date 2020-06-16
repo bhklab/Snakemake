@@ -19,7 +19,8 @@ Please follow the steps below to run the workflow (NOTE: ensure you change some 
 <br> 
 Below are details of the processes run in each step:
 <br>
-__Step 1__ (executes bwa alignment, picard MarkDuplicates, and GATK preprocessing steps)
+<br>
+**Step 1** (executes bwa alignment, picard MarkDuplicates, and GATK preprocessing steps)
 **Step 2:** (executes MuTect2 in parallelized manner on split BED file - approx 20 min per sample runtime)
 **Step 2:** (merges MuTect2 parallelized outputs per sample)
 **Step 3:** (executes MuTect1, MuTect2 filtering, Varscan (CN, Somatic), Strelka, Sequenza, VCFIntersect)

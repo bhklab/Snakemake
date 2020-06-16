@@ -1,0 +1,57 @@
+configfile: "config.yaml"
+
+import pandas as pd
+import os
+
+samples = pd.read_table(
+    config["sample_file"]
+).set_index(
+    "sample", drop=False
+)
+
+intervals = pd.read_table(
+    config["bed_file"]
+).set_index(
+    "interval", drop=False
+)
+
+output_dir = os.environ.get("output_dir")
+
+
+def get_intervals(wildcards):
+    inter = wildcards.interval
+    bed = "/cluster/projects/bhklab/Data/ExomeIndices/bed_hg19/" + inter + ".bed"
+    return bed
+
+
+rule all:
+    input: expand("{output_dir}/MuTect2/{sample}/{sample}_{interval}.mut2.vcf", sample = samples["sample"] ,output_dir=output_dir, interval=intervals["interval"])
+    params: 
+        runtime="120:00:00"
+    threads: 1
+    resources: mem_mb=6000
+    shell:
+     """
+     module load igenome-human/hg19
+     """
+
+rule MuTect2:
+    input:
+        bam = "{output_dir}/alignment/{sample}/{sample}.realigned.recal.bam",
+        ref = '/cluster/tools/data/genomes/human/hg19/iGenomes/Sequence/WholeGenomeFasta/genome.fa',
+    params:
+        runtime="8:00:00",
+        intervals = get_intervals
+    output: "{output_dir}/MuTect2/{sample}/{sample}_{interval}.mut2.vcf"
+    threads: 2 
+    resources: mem_mb=8000
+    shell:
+     """
+     module load gatk/3.8
+     java -Xmx8g -jar $gatk_dir/GenomeAnalysisTK.jar \
+     -T MuTect2  \
+     -R {input.ref} \
+     -L {params.intervals} \
+     --input_file:tumor {input.bam} \
+     -o {output} \
+     """

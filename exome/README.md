@@ -12,9 +12,9 @@ Please follow the steps below to run the workflow (NOTE: ensure you change some 
 <br> 
 1. `git clone bhklab Snakemake`
 2. `cd` into exome dir.
-3.  `cd` into each step in order (step 1 - 5) and submit respective step to H4H like the following example:
+3.  `cd` into each step in order (step 1 - 5) and submit respective step to H4H like the following example: `sbatch snake_submit_step1.sh`
 <br> 
-`sbatch snake_submit_step1.sh` (*NOTE*: in step 2, run snake_submit_step2.sh before snake_submit_step2merge.sh)
+(NOTE: in step 2, run snake_submit_step2.sh before snake_submit_step2merge.sh)
 <br>
 <br> 
 Below are details of the processes run in each step:

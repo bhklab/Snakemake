@@ -7,7 +7,7 @@ The workflow contains 5 separate Snakemake pipelines,
 in order to effectively parallelize two key steps that have a long runtime and rather complex execution (MuTect2, VCFtoMAF)
 <br>
 <br> 
-Please follow the steps below to run the workflow (NOTE: ensure you change some file paths in Snakefiles (e.g. S04380110_Covered.headless.bed):
+Please follow the steps below to run the workflow (NOTE: ensure you change some file paths in Snakefiles (e.g. /path/to/S04380110_Covered.headless.bed):
 <br>
 <br> 
 1. `git clone bhklab Snakemake`
@@ -18,12 +18,13 @@ Please follow the steps below to run the workflow (NOTE: ensure you change some 
 <br>
 <br> 
 Below are details of the processes run in each step:
-**Step 1:** (executes bwa alignment, picard MarkDuplicates, and GATK preprocessing steps)
-**Step 2:**  (executes MuTect2 in parallelized manner on split BED file - approx 20 min per sample runtime)
-**Step 2:**  (merges MuTect2 parallelized outputs per sample)
+<br>
+__Step 1__ (executes bwa alignment, picard MarkDuplicates, and GATK preprocessing steps)
+**Step 2:** (executes MuTect2 in parallelized manner on split BED file - approx 20 min per sample runtime)
+**Step 2:** (merges MuTect2 parallelized outputs per sample)
 **Step 3:** (executes MuTect1, MuTect2 filtering, Varscan (CN, Somatic), Strelka, Sequenza, VCFIntersect)
-**Step 4:**  (executes hg19tohg38LiftOver)
-**Step 5:**  (executes VCFtoMAF. Make sure you run all .sh files for both hg19 and hg38)
+**Step 4:** (executes hg19tohg38LiftOver)
+**Step 5:** (executes VCFtoMAF. Make sure you run all .sh files for both hg19 and hg38)
 
 OncoKb-Annotator was ran on all MAF's, but not using Snakemake, as it required Samwise with internet access. Jobs
 had to be parallelized on Samwise with *screen*, which Snakemake cannot track for validity. Script can be found under

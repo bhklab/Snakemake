@@ -10,7 +10,7 @@ The workflow contains 3 separate Snakemake pipelines,
 in order to effectively parallelize two key steps that have a long runtime and rather complex execution (MuTect2, VCFtoMAF)
 <br>
 <br> 
-Please run the pipelines (Snakefiles) in the following order (with accompanying snake_submit.sh, config.yaml, and .tsv files for H4H execution):
+Please run the pipelines (Snakefiles) in the following order (with accompanying snake_submit.sh, config.yaml, and .tsv files for H4H execution) - change some file paths in Snakefiles (e.g. S04380110_Covered.headless.bed):
 <br>
 <br>
 Example: Run `snake_submit_step1.sh` in same directory as Snakefile_step1, config.yaml, and .tsv files.

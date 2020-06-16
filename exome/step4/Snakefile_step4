@@ -1,0 +1,136 @@
+configfile: "config.yaml"
+
+import pandas as pd
+import os
+
+samples = pd.read_table(
+    config["sample_file"]
+).set_index(
+    "sample", drop=False
+)
+
+output_dir = os.environ.get("output_dir")
+
+
+def get_r1(wildcards):
+    return samples.read1[wildcards.sample]
+
+def get_r2(wildcards):
+    return samples.read2[wildcards.sample]
+
+
+
+rule all:
+    input: expand("{output_dir}/vcfIntersect/{sample}_intersect_snv/0000_hg38.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_snv/0001_hg38.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_snv/0002_hg38.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_snv/0003_hg38.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_indel/0000_hg38.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_indel/0001_hg38.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_indel/0002_hg38.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_snv/0000_hg38_rejected.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_snv/0001_hg38_rejected.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_snv/0002_hg38_rejected.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_snv/0003_hg38_rejected.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_indel/0000_hg38_rejected.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_indel/0001_hg38_rejected.vcf", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/vcfIntersect/{sample}_intersect_indel/0002_hg38_rejected.vcf", sample = samples["sample"], output_dir=output_dir)
+    params: 
+        runtime="120:00:00",
+        partition="all"
+    threads: 1
+    resources: mem_mb=6000
+    shell:
+     """
+     module load igenome-human/hg38
+     """   
+
+rule LiftOverhg38:
+    input:
+        ref = '/cluster/tools/data/genomes/human/hg38/iGenomes/Sequence/WholeGenomeFasta/genome.fa',
+        vcf_inter = "{output_dir}/vcfIntersect/{sample}_intersect_snv",
+        vcf_inter_indel = "{output_dir}/vcfIntersect/{sample}_intersect_indel",
+    params:
+        samp="{sample}",
+        runtime="1:00:00",
+        lift="/cluster/home/amammoli/hg19ToHg38.over.chain",
+        jar="/cluster/home/amammoli/picard.jar",
+        partition="all"
+    output:
+        o1="{output_dir}/vcfIntersect/{sample}_intersect_snv/0000_hg38.vcf",
+        o2="{output_dir}/vcfIntersect/{sample}_intersect_snv/0001_hg38.vcf",
+        o3="{output_dir}/vcfIntersect/{sample}_intersect_snv/0002_hg38.vcf",
+        o4="{output_dir}/vcfIntersect/{sample}_intersect_snv/0003_hg38.vcf",
+        o5="{output_dir}/vcfIntersect/{sample}_intersect_indel/0000_hg38.vcf",
+        o6="{output_dir}/vcfIntersect/{sample}_intersect_indel/0001_hg38.vcf",
+        o7="{output_dir}/vcfIntersect/{sample}_intersect_indel/0002_hg38.vcf",
+        o1r="{output_dir}/vcfIntersect/{sample}_intersect_snv/0000_hg38_rejected.vcf",
+        o2r="{output_dir}/vcfIntersect/{sample}_intersect_snv/0001_hg38_rejected.vcf",
+        o3r="{output_dir}/vcfIntersect/{sample}_intersect_snv/0002_hg38_rejected.vcf",
+        o4r="{output_dir}/vcfIntersect/{sample}_intersect_snv/0003_hg38_rejected.vcf",
+        o5r="{output_dir}/vcfIntersect/{sample}_intersect_indel/0000_hg38_rejected.vcf",
+        o6r="{output_dir}/vcfIntersect/{sample}_intersect_indel/0001_hg38_rejected.vcf",
+        o7r="{output_dir}/vcfIntersect/{sample}_intersect_indel/0002_hg38_rejected.vcf",
+    threads: 2
+    resources: mem_mb=20000
+    shell:
+     """
+     module load igenome-human/hg38
+     
+     java -jar {params.jar} LiftoverVcf \
+     I={input.vcf_inter}/0000.vcf \
+     O={output.o1} \
+     CHAIN={params.lift} \
+     REJECT={output.o1r} \
+     R={input.ref} \
+     WARN_ON_MISSING_CONTIG=true
+
+     java -jar {params.jar} LiftoverVcf \
+     I={input.vcf_inter}/0001.vcf \
+     O={output.o2} \
+     CHAIN={params.lift} \
+     REJECT={output.o2r} \
+     R={input.ref} \
+     WARN_ON_MISSING_CONTIG=true
+
+     java -jar {params.jar} LiftoverVcf \
+     I={input.vcf_inter}/0002.vcf \
+     O={output.o3} \
+     CHAIN={params.lift} \
+     REJECT={output.o3r} \
+     R={input.ref} \
+     WARN_ON_MISSING_CONTIG=true
+
+     java -jar {params.jar} LiftoverVcf \
+     I={input.vcf_inter}/0003.vcf \
+     O={output.o4} \
+     CHAIN={params.lift} \
+     REJECT={output.o4r} \
+     R={input.ref} \
+     WARN_ON_MISSING_CONTIG=true
+
+     java -jar {params.jar} LiftoverVcf \
+     I={input.vcf_inter_indel}/0000.vcf \
+     O={output.o5} \
+     CHAIN={params.lift} \
+     REJECT={output.o5r} \
+     R={input.ref} \
+     WARN_ON_MISSING_CONTIG=true
+
+     java -jar {params.jar} LiftoverVcf \
+     I={input.vcf_inter_indel}/0001.vcf \
+     O={output.o6} \
+     CHAIN={params.lift} \
+     REJECT={output.o6r} \
+     R={input.ref} \
+     WARN_ON_MISSING_CONTIG=true
+
+     java -jar {params.jar} LiftoverVcf \
+     I={input.vcf_inter_indel}/0002.vcf \
+     O={output.o7} \
+     CHAIN={params.lift} \
+     REJECT={output.o7r} \
+     R={input.ref} \
+     WARN_ON_MISSING_CONTIG=true
+
+     """

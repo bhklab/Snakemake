@@ -1,0 +1,130 @@
+configfile: "config.yaml"
+
+import pandas as pd
+import os
+
+samples = pd.read_table(
+    config["sample_file"]
+).set_index(
+    "sample", drop=False
+)
+
+output_dir = os.environ.get("output_dir")
+ref_m="module load igenome-human/hg19"
+
+def get_r1(wildcards):
+    return samples.read1[wildcards.sample]
+
+def get_r2(wildcards):
+    return samples.read2[wildcards.sample]
+
+
+rule all:
+    input: expand("{output_dir}/annotate/{sample}/{sample}_circularRNA_known.txt", sample = samples["sample"], output_dir=output_dir)
+
+    params: 
+        prefix=ref_m,
+        runtime="120:00:00",
+        partition="all"
+    threads: 1
+    resources: mem_mb=6000
+    shell:
+     """
+     {params.prefix}
+     """ 
+
+rule TopHat2:
+    input: 
+        r1 =  get_r1, 
+        r2 =  get_r2
+    params:
+        runtime="48:00:00",
+        od="{output_dir}/alignment/{sample}",
+        ref_gtf="/cluster/projects/bhklab/Data/ncRNA_detect/ref/gencode.v33lift37.annotation.gtf",
+        bowtie="/cluster/tools/data/genomes/human/hg19/iGenomes/Sequence/Bowtie2Index/genome",
+        partition="himem"
+    output: "{output_dir}/alignment/{sample}/unmapped.bam"
+    threads: 10
+    resources: mem_mb=42000
+    shell:
+     """
+     module load python/2.7
+     #!/usr/bin/python
+     module load tophat2
+     module load bowtie2
+     tophat2 -a 6 --microexon-search -m 2 -p 10 -G {params.ref_gtf} -o {params.od} {params.bowtie} {input.r1} {input.r2}
+     ls -la {output}
+     """
+
+rule UnmappedtoFastq:
+    input: 
+        bam="{output_dir}/alignment/{sample}/unmapped.bam"
+    params:
+        runtime="24:00:00",
+        partition="all"
+    output: 
+        fq="{output_dir}/alignment/{sample}/unmapped.fastq",
+    threads: 2
+    resources: mem_mb=15000
+    shell:
+     """
+     module load bedtools
+     bamToFastq -i {input.bam} -fq {output}
+     """
+
+rule TopHatFusion:
+    input: 
+        fq="{output_dir}/alignment/{sample}/unmapped.fastq"
+    params:
+        runtime="48:00:00",
+        od="{output_dir}/alignment/{sample}/filtered",
+        bowtie="/cluster/tools/data/genomes/human/hg19/iGenomes/Sequence/BowtieIndex/genome",
+        partition="himem"
+    output: "{output_dir}/alignment/{sample}/filtered/accepted_hits.bam"
+    threads: 15
+    resources: mem_mb=45000
+    shell:
+     """
+     module load python/2.7
+     #!/usr/bin/python
+     module load tophat2
+     module load bowtie
+     tophat2 -o {params.od} -p 15 --fusion-search --keep-fasta-order --bowtie1 --no-coverage-search {params.bowtie} {input.fq}
+     ls -la {output}
+     """
+
+rule parse:
+    input: 
+        hits="{output_dir}/alignment/{sample}/filtered/accepted_hits.bam"
+    params:
+        runtime="8:00:00",
+        partition="all"
+    output: "{output_dir}/parse/{sample}/{sample}_back_spliced_junction.bed"
+    log:
+        "{output_dir}/parse/{sample}/logs/CIRCexplorer2_parse.log"
+    threads: 3
+    resources: mem_mb=15000
+    shell:
+     """
+     module load CIRCexplorer2
+     CIRCexplorer2 parse -t TopHat-Fusion {input.hits} -b {output} > {log}
+     """
+
+rule annotate:
+    input: 
+        bed="{output_dir}/parse/{sample}/{sample}_back_spliced_junction.bed",
+        gtf="/cluster/projects/bhklab/Data/ncRNA_detect/ref/gencode_v33lift37_refFlat.txt",
+        ref="/cluster/tools/data/genomes/human/hg19/iGenomes/Sequence/WholeGenomeFasta/genome.fa"
+    params:
+        runtime="8:00:00",
+        partition="all"
+    output: "{output_dir}/annotate/{sample}/{sample}_circularRNA_known.txt"
+    log:
+        "{output_dir}/annotate/{sample}/logs/CIRCexplorer2_annotate.log"
+    threads: 3
+    resources: mem_mb=15000
+    shell:
+     """
+     module load CIRCexplorer2
+     CIRCexplorer2 annotate -r {input.gtf} -g {input.ref} -b {input.bed} -o {output} > {log}
+     """ 

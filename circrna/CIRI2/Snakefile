@@ -1,0 +1,70 @@
+configfile: "config.yaml"
+
+import pandas as pd
+import os
+
+samples = pd.read_table(
+    config["sample_file"]
+).set_index(
+    "sample", drop=False
+)
+
+output_dir = os.environ.get("output_dir")
+ref_m="module load igenome-human/hg19"
+
+def get_r1(wildcards):
+    return samples.read1[wildcards.sample]
+
+def get_r2(wildcards):
+    return samples.read2[wildcards.sample]
+
+
+rule all:
+    input: expand("{output_dir}/result/{sample}.tsv", sample = samples["sample"], output_dir=output_dir)
+
+    params: 
+        prefix=ref_m,
+        runtime="72:00:00",
+        partition="all"
+    threads: 1
+    resources: mem_mb=6000
+    shell:
+     """
+     {params.prefix}
+     """ 
+
+rule mapFASTQ:
+    input: 
+        r1 =  get_r1, 
+        r2 =  get_r2
+    params:
+        runtime="20:00:00",
+        od="{output_dir}/alignment/{sample}",
+        genome="/cluster/tools/data/genomes/human/hg19/iGenomes/Sequence/BWAIndex/genome.fa",
+        partition="all"
+    output: temp("{output_dir}/alignment/{sample}/{sample}.sam")
+    threads: 4
+    resources: mem_mb=20000
+    shell:
+     """
+     module load bwa
+     bwa mem -t 4 -T 19 {params.genome} {input.r1} {input.r2} > {output}
+     """
+
+rule CIRI2:
+    input: 
+        sam="{output_dir}/alignment/{sample}/{sample}.sam",
+        gtf="/cluster/projects/bhklab/Data/ncRNA_detect/ref/gencode.v33lift37.annotation.gtf"
+    params:
+        runtime="12:00:00",
+        partition="all",
+        ciri_script="/cluster/projects/bhklab/Data/ncRNA_detect/circRNA/CIRI2/CIRI_v2.0.6/CIRI2.pl",
+        genome="/cluster/tools/data/genomes/human/hg19/iGenomes/Sequence/BWAIndex/genome.fa"
+    output: "{output_dir}/result/{sample}.tsv"
+    threads: 2
+    resources: mem_mb=30000
+    shell:
+     """
+     module load perl
+     perl {params.ciri_script} -T 2 -I {input.sam} -O {output} -F {params.genome} -A {input.gtf}
+     """

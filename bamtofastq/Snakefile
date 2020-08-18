@@ -1,0 +1,59 @@
+configfile: "config.yaml"
+
+import pandas as pd
+
+samples = pd.read_table(
+    config["sample_file"]
+).set_index(
+    "sample", drop=False
+)
+
+output_dir = os.environ.get("output_dir")
+
+def get_r1(wildcards):
+    return samples.read1[wildcards.sample]
+
+
+rule all:
+    input: expand("{output_dir}/{sample}/{sample}_1.fastq.gz", sample = samples["sample"], output_dir=output_dir),
+           expand("{output_dir}/{sample}/{sample}_2.fastq.gz", sample = samples["sample"], output_dir=output_dir)
+    params: 
+        runtime="72:00:00"
+    threads: 1
+    resources: mem_mb=3000
+
+
+rule Sort:
+    input:
+        r1 =  get_r1,
+    params:
+        runtime="6:00:00",
+        outdir="{output_dir}/{sample}"
+    output: 
+        sorted=temp("{output_dir}/{sample}/{sample}_sorted.bam"),
+    threads: 4
+    resources: mem_mb=25000
+    shell:
+     """
+     module load samtools
+     mkdir -p {params.outdir}
+     samtools sort -n {input.r1} -o {output.sorted} --threads 3 -m 6G
+     """
+
+
+rule BamToFastq:
+    input:
+        r1 = "{output_dir}/{sample}/{sample}_sorted.bam",
+    params:
+        runtime="6:00:00",
+        base="{sample}"
+    output: 
+        f1="{output_dir}/{sample}/{sample}_1.fastq.gz",
+        f2="{output_dir}/{sample}/{sample}_2.fastq.gz"
+    threads: 2
+    resources: mem_mb=20000
+    shell:
+     """
+     module load bedtools
+     bedtools bamtofastq -i {input.r1} -fq {output.f1} -fq2 {output.f2}
+     """

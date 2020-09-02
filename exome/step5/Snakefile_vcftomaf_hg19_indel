@@ -29,7 +29,7 @@ def get_indels(wildcards):
     return indel
 
 rule all:
-    input: expand("{output_dir}/MAF/indel/{sample}/{indel}.maf", sample = samples["sample"], output_dir=output_dir, indel=indel_vcfs["indel"]),
+    input: expand("{output_dir}/MAF_19_f/indel/{sample}/{indel}.maf", sample = samples["sample"], output_dir=output_dir, indel=indel_vcfs["indel"]),
     params: 
         runtime="120:00:00",
         partition="all"
@@ -46,41 +46,43 @@ rule vcftoMAFindel:
         vcf_inter = "{output_dir}/vcfIntersect/{sample}_intersect_indel"
     params:
         samp="{sample}",
-        runtime="12:00:00",
+        runtime="13:00:00",
         indel = get_indels,
         partition="himem"
-    output: "{output_dir}/MAF/indel/{sample}/{indel}.maf",
+    output: "{output_dir}/MAF_19_f/indel/{sample}/{indel}.maf",
     threads: 4
     resources: mem_mb=45000
     run: 
         if wildcards.indel != '0001':
             shell("""module load samtools vep/98
-		perl /cluster/home/amammoli/vcf2maf.pl \
-                  --input-vcf {input.vcf_inter}/{params.indel} \
+                bcftools view -f PASS {input.vcf_inter}/{params.indel} > {input.vcf_inter}/fil_{params.indel}
+		perl /cluster/projects/pughlab/bin/vcf2maf-1.6.17/vcf2maf.pl \
+                  --input-vcf {input.vcf_inter}/fil_{params.indel} \
                   --output-maf {output} \
                   --vep-forks 4 \
+                  --species homo_sapiens \
                   --buffer-size 1000 \
                   --ref-fasta={input.ref} \
-                  --filter-vcf=0 \
                   --tumor-id={params.samp} \
                   --ncbi-build GRCh37 \
+                  --filter-vcf /cluster/projects/pughlab/references/VEP_cache/ExAC_nonTCGA.r1.sites.vep.vcf.gz \
                   --vep-path=/cluster/tools/software/centos7/vep/98 \
-                  --vep-data=/cluster/tools/data/commondata/ensembl/vep/98""")
+                  --vep-data=/cluster/projects/pughlab/references/VEP_cache/98""")
         else:
             shell("""module load samtools vep/98
-	        perl /cluster/home/amammoli/vcf2maf.pl \
-                  --input-vcf {input.vcf_inter}/{params.indel} \
+                bcftools view -f PASS {input.vcf_inter}/{params.indel} > {input.vcf_inter}/fil_{params.indel}
+	        perl /cluster/projects/pughlab/bin/vcf2maf-1.6.17/vcf2maf.pl \
+                  --input-vcf {input.vcf_inter}/fil_{params.indel} \
                   --output-maf {output} \
+                  --species homo_sapiens \
                   --vep-forks 4 \
                   --buffer-size 1000 \
                   --ref-fasta={input.ref} \
-                  --filter-vcf=0 \
                   --normal-id unmatched \
                   --vcf-tumor-id TUMOR \
                   --vcf-normal-id NORMAL \
                   --tumor-id={params.samp} \
                   --ncbi-build GRCh37 \
+                  --filter-vcf /cluster/projects/pughlab/references/VEP_cache/ExAC_nonTCGA.r1.sites.vep.vcf.gz \
                   --vep-path=/cluster/tools/software/centos7/vep/98 \
-                  --vep-data=/cluster/tools/data/commondata/ensembl/vep/98""")
-
-
+                  --vep-data=/cluster/projects/pughlab/references/VEP_cache/98""")

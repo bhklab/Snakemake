@@ -29,7 +29,7 @@ def get_snvs(wildcards):
     return snv
 
 rule all:
-    input: expand("{output_dir}/MAF/snv/{sample}/{snv}.maf", sample = samples["sample"], output_dir=output_dir, snv=snv_vcfs["snv"]),
+    input: expand("{output_dir}/MAF_19_f/snv/{sample}/{snv}.maf", sample = samples["sample"], output_dir=output_dir, snv=snv_vcfs["snv"]),
     params: 
         runtime="120:00:00",
         partition="all"
@@ -51,37 +51,40 @@ rule vcftoMAFsnv:
         runtime="48:00:00",
         snv = get_snvs,
         partition="himem"
-    output: "{output_dir}/MAF/snv/{sample}/{snv}.maf",
+    output: "{output_dir}/MAF_19_f/snv/{sample}/{snv}.maf",
     threads: 4
     resources: mem_mb=45000
     run: 
         if wildcards.snv != '0002':
             shell("""module load samtools vep/98
-		perl /cluster/home/amammoli/vcf2maf.pl \
-                  --input-vcf {input.vcf_inter}/{params.snv} \
+	        bcftools view -f PASS {input.vcf_inter}/{params.snv} > {input.vcf_inter}/fil_{params.snv}
+		perl /cluster/projects/pughlab/bin/vcf2maf-1.6.17/vcf2maf.pl \
+                  --input-vcf {input.vcf_inter}/fil_{params.snv} \
+		  --species homo_sapiens \
                   --output-maf {output} \
                   --vep-forks 4 \
                   --buffer-size 1000 \
                   --ref-fasta={input.ref} \
-                  --filter-vcf=0 \
+                  --filter-vcf /cluster/projects/pughlab/references/VEP_cache/ExAC_nonTCGA.r1.sites.vep.vcf.gz \
                   --tumor-id={params.samp} \
                   --ncbi-build GRCh37 \
                   --vep-path=/cluster/tools/software/centos7/vep/98 \
-                  --vep-data=/cluster/tools/data/commondata/ensembl/vep/98""")
+                  --vep-data=/cluster/projects/pughlab/references/VEP_cache/98""")
         else:
             shell("""module load samtools vep/98
-	        perl /cluster/home/amammoli/vcf2maf.pl \
-                  --input-vcf {input.vcf_inter}/{params.snv} \
+	        bcftools view -f PASS {input.vcf_inter}/{params.snv} > {input.vcf_inter}/fil_{params.snv}
+	        perl /cluster/projects/pughlab/bin/vcf2maf-1.6.17/vcf2maf.pl \
+                  --input-vcf {input.vcf_inter}/fil_{params.snv} \
+		  --species homo_sapiens \
                   --output-maf {output} \
                   --vep-forks 4 \
                   --buffer-size 1000 \
                   --ref-fasta={input.ref} \
-                  --filter-vcf=0 \
+                  --filter-vcf /cluster/projects/pughlab/references/VEP_cache/ExAC_nonTCGA.r1.sites.vep.vcf.gz \
                   --normal-id unmatched \
                   --vcf-tumor-id TUMOR \
                   --vcf-normal-id NORMAL \
                   --tumor-id={params.samp} \
                   --ncbi-build GRCh37 \
                   --vep-path=/cluster/tools/software/centos7/vep/98 \
-                  --vep-data=/cluster/tools/data/commondata/ensembl/vep/98""")
-
+                  --vep-data=/cluster/projects/pughlab/references/VEP_cache/98""")

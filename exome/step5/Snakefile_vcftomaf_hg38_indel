@@ -87,3 +87,4 @@ rule vcftoMAFindel:
                   --vep-path=/cluster/tools/software/centos7/vep/98 \
                   --vep-data=/cluster/projects/pughlab/references/VEP_cache/98""")
 
+

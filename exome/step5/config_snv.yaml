@@ -1,2 +1,2 @@
-sample_file: exome_samples.tsv
+sample_file: ../exome_samples.tsv
 snv_vcf: snvs.tsv

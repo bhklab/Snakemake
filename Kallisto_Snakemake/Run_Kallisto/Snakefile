@@ -1,0 +1,47 @@
+configfile: "config.yaml"
+
+import pandas as pd
+
+samples = pd.read_table(
+    config["sample_file"]
+).set_index(
+    "sample", drop=False
+)
+
+
+def get_r1(wildcards):
+	return config["DATASET_PATH"] + "/" + samples.read1[wildcards.sample]
+
+def get_r2(wildcards):
+	return config["DATASET_PATH"] + "/" + samples.read2[wildcards.sample]
+
+
+rule all:
+	input: expand("{output_path}/{sample}/abundance.tsv", sample = samples["sample"], output_path = config['OUTPUT_PATH'])
+
+
+rule RUN_Kallisto:
+	input:
+		r1 =  get_r1,
+		r2 =  get_r2,
+		index = config['KALLISTO_INDEX'],
+	params:
+		partition = "all",
+		jobname = "kallisto_{sample}",
+		output = "rule_output_{sample}.txt",
+		memory = 20000,
+		ntasks = 1,		
+		runtime = "3:00:00",
+		threads= 20
+	output: "{output_path}/{sample}/abundance.tsv"
+	shell:
+		"""
+		module load kallisto/0.46.1
+		kallisto quant -i {input.index} -o {wildcards.output_path}/{wildcards.sample}/ -t {params.threads} {input.r1} {input.r2}
+
+		"""
+
+
+
+
+

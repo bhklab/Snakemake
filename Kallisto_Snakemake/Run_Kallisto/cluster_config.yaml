@@ -1,0 +1,6 @@
+# cluster_config.yml - cluster configuration
+# You can add general cluster configurations here. Job specific configurations should be defined inside the rules. 
+ __default__:
+        mail_type: END,FAIL
+        email: email@uhnresearch.ca
+

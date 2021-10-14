@@ -1,0 +1,5 @@
+# Becareful not to add slash after the last folder at the end of the paths below. Because I add it in the code and if there are two slashes snakemake throws error. 
+sample_file: samples.tsv
+KALLISTO_INDEX: /path/to/kallisto/index/gencode.v38.transcripts.idx
+DATASET_PATH: /path/to/fastq/folder
+OUTPUT_PATH: /path/to/output/folder
